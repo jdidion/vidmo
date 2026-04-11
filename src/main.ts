@@ -4,11 +4,18 @@ import { createLayout } from './ui/layout';
 import { onImageUpload, onGridSizeChange, updateProgress } from './ui/controls';
 import { renderGrid } from './ui/grid-renderer';
 import { splitImageIntoTiles } from './image/tile-splitter';
+import { openModal } from './ui/modal';
+import { startRecording } from './video/recorder';
+import { findBestMatch } from './matching/matcher';
+import type { RecorderHandle } from './video/recorder';
 
 const store = createStore();
 
 const app = document.getElementById('app')!;
-const { grid, controls, header } = createLayout(app);
+const { grid, controls, preview, header } = createLayout(app);
+const previewVideo = preview.querySelector<HTMLVideoElement>('video')!;
+
+let recorderHandle: RecorderHandle | null = null;
 
 const uploadInput = controls.querySelector<HTMLInputElement>('#image-upload')!;
 const gridSelect = controls.querySelector<HTMLSelectElement>('#grid-size')!;
@@ -43,21 +50,62 @@ onGridSizeChange(gridSelect, (rows, cols) => {
     }
   }
 
-  store.update({ gridRows: rows, gridCols: cols });
-
+  const partial: Partial<typeof state> = { gridRows: rows, gridCols: cols };
   if (state.sourceImageData) {
-    const tiles = splitImageIntoTiles(state.sourceImageData, rows, cols);
-    store.update({
-      tiles,
-      completedCount: 0,
-      videos: new Map(),
-    });
+    partial.tiles = splitImageIntoTiles(state.sourceImageData, rows, cols);
+    partial.completedCount = 0;
+    partial.videos = new Map();
   }
+  store.update(partial);
 });
 
-// Record button placeholder (Phase 4)
-recordBtn.addEventListener('click', () => {
-  console.log('Recording not yet implemented');
+// Record button: toggle recording and run matching on stop
+recordBtn.addEventListener('click', async () => {
+  const state = store.getState();
+
+  if (state.phase === 'image-loaded') {
+    // Start recording
+    store.update({ phase: 'recording' });
+    preview.classList.remove('hidden');
+    recorderHandle = await startRecording(previewVideo);
+    recordBtn.textContent = 'Stop';
+    recordBtn.classList.add('recording');
+  } else if (state.phase === 'recording' && recorderHandle) {
+    // Stop recording and match
+    store.update({ phase: 'processing' });
+    recordBtn.textContent = 'Matching...';
+    recordBtn.disabled = true;
+    preview.classList.add('hidden');
+    recordBtn.classList.remove('recording');
+
+    const video = await recorderHandle.stop();
+    const currentState = store.getState();
+    currentState.videos.set(video.id, video);
+    store.update({ videos: currentState.videos });
+
+    const match = await findBestMatch(video.blob, currentState.tiles);
+    if (match) {
+      const updatedTiles = currentState.tiles.map((tile) =>
+        tile.id === match.tileId
+          ? {
+              ...tile,
+              matched: true,
+              matchedVideoId: video.id,
+              matchedFrameData: match.frame.imageData,
+            }
+          : tile,
+      );
+      store.update({
+        tiles: updatedTiles,
+        completedCount: currentState.completedCount + 1,
+      });
+    }
+
+    store.update({ phase: 'image-loaded' });
+    recordBtn.disabled = false;
+    recordBtn.textContent = 'Record';
+    recorderHandle = null;
+  }
 });
 
 // Reset button
@@ -74,7 +122,7 @@ resetBtn.addEventListener('click', () => {
 // Subscribe to state changes
 store.subscribe((state) => {
   // Update record button state
-  recordBtn.disabled = state.phase === 'idle';
+  recordBtn.disabled = state.phase === 'idle' || state.phase === 'processing';
 
   // Update progress
   updateProgress(progressEl, state.completedCount, state.tiles.length);
@@ -87,8 +135,14 @@ store.subscribe((state) => {
       state.gridCols,
       state.sourceImageData,
       (tileId) => {
-        // Tile click placeholder (Phase 6)
-        console.log('Tile clicked:', tileId);
+        const s = store.getState();
+        const tile = s.tiles.find((t) => t.id === tileId);
+        if (tile?.matched && tile.matchedVideoId) {
+          const video = s.videos.get(tile.matchedVideoId);
+          if (video) {
+            openModal(video.objectUrl);
+          }
+        }
       },
     );
   } else {

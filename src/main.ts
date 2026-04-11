@@ -5,6 +5,7 @@ import { onImageUpload, onGridSizeChange, updateProgress } from './ui/controls';
 import { renderGrid } from './ui/grid-renderer';
 import { splitImageIntoTiles } from './image/tile-splitter';
 import { openModal } from './ui/modal';
+import { saveMosaic, loadMosaic } from './persistence';
 import { startRecording } from './video/recorder';
 import { findBestMatch } from './matching/matcher';
 import type { RecorderHandle } from './video/recorder';
@@ -21,6 +22,8 @@ const uploadInput = controls.querySelector<HTMLInputElement>('#image-upload')!;
 const gridSelect = controls.querySelector<HTMLSelectElement>('#grid-size')!;
 const recordBtn = controls.querySelector<HTMLButtonElement>('#record-btn')!;
 const resetBtn = controls.querySelector<HTMLButtonElement>('#reset-btn')!;
+const saveBtn = controls.querySelector<HTMLButtonElement>('#save-btn')!;
+const loadInput = controls.querySelector<HTMLInputElement>('#load-input')!;
 const progressEl = header.querySelector<HTMLElement>('#progress')!;
 
 // Wire image upload
@@ -85,6 +88,7 @@ recordBtn.addEventListener('click', async () => {
     recordBtn.textContent = 'Matching...';
     recordBtn.disabled = true;
     preview.classList.add('hidden');
+    previewVideo.srcObject = null;
     recordBtn.classList.remove('recording');
 
     const handle = recorderHandle;
@@ -97,7 +101,7 @@ recordBtn.addEventListener('click', async () => {
       updatedVideos.set(video.id, video);
       store.update({ videos: updatedVideos });
 
-      const match = await findBestMatch(video.blob, currentState.tiles);
+      const match = await findBestMatch(video.blob, currentState.tiles, currentState.sourceImageData!);
       if (match) {
         const updatedTiles = currentState.tiles.map((tile) =>
           tile.id === match.tileId
@@ -146,6 +150,51 @@ resetBtn.addEventListener('click', () => {
   gridSelect.value = '8x8';
 });
 
+// Save button
+saveBtn.addEventListener('click', async () => {
+  const state = store.getState();
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+  try {
+    const blob = await saveMosaic(state);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mosaic.vidmo';
+    a.click();
+    URL.revokeObjectURL(url);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+  }
+});
+
+// Load input
+loadInput.addEventListener('change', async () => {
+  const file = loadInput.files?.[0];
+  if (!file) return;
+  try {
+    const data = await loadMosaic(file);
+    // Revoke old URLs
+    store.getState().videos.forEach((v) => URL.revokeObjectURL(v.objectUrl));
+    store.update({
+      phase: 'image-loaded',
+      sourceImage: data.sourceImage,
+      sourceImageData: data.sourceImageData,
+      gridRows: data.gridRows,
+      gridCols: data.gridCols,
+      tiles: data.tiles,
+      videos: data.videos,
+      completedCount: data.completedCount,
+    });
+    gridSelect.value = `${data.gridRows}x${data.gridCols}`;
+  } catch (err) {
+    alert('Failed to load mosaic file.');
+    console.error(err);
+  }
+  loadInput.value = '';
+});
+
 // Subscribe to state changes
 store.subscribe((state) => {
   // Update record button state
@@ -153,6 +202,9 @@ store.subscribe((state) => {
 
   // Disable grid-size change during recording/processing
   gridSelect.disabled = state.phase === 'recording' || state.phase === 'processing';
+
+  // Enable save when there are matched tiles
+  saveBtn.disabled = state.completedCount === 0;
 
   // Update progress
   updateProgress(progressEl, state.completedCount, state.tiles.length);

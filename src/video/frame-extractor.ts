@@ -28,6 +28,7 @@ export async function extractFrames(
   videoBlob: Blob,
   targetWidth: number,
   targetHeight: number,
+  onProgress?: (current: number, total: number) => void,
 ): Promise<ExtractedFrame[]> {
   const video = document.createElement('video');
   video.muted = true;
@@ -58,6 +59,7 @@ export async function extractFrames(
       const histogram = computeHistogram(imageData.data);
 
       frames.push({ time: video.currentTime, imageData, histogram });
+      onProgress?.(i + 1, N);
     }
 
     return frames;

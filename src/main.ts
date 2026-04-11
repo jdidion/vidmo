@@ -18,6 +18,35 @@ const previewVideo = preview.querySelector<HTMLVideoElement>('video')!;
 
 let recorderHandle: RecorderHandle | null = null;
 
+// Processing progress bar
+const progressBar = document.createElement('div');
+progressBar.className = 'progress-bar hidden';
+progressBar.innerHTML = '<div class="progress-bar-label"></div><div class="progress-bar-track"><div class="progress-bar-fill"></div></div>';
+app.insertBefore(progressBar, grid);
+
+function showProgress(stage: string, fraction: number) {
+  progressBar.classList.remove('hidden');
+  progressBar.querySelector('.progress-bar-label')!.textContent = stage;
+  (progressBar.querySelector('.progress-bar-fill') as HTMLElement).style.width = `${Math.round(fraction * 100)}%`;
+}
+
+function hideProgress() {
+  progressBar.classList.add('hidden');
+}
+
+function showError(message: string) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'error-modal-backdrop';
+  backdrop.innerHTML = `<div class="error-modal"><div class="error-modal-icon">!</div><div class="error-modal-message">${message}</div><button class="error-modal-close">OK</button></div>`;
+  document.body.appendChild(backdrop);
+  const close = () => backdrop.remove();
+  backdrop.querySelector('.error-modal-close')!.addEventListener('click', close);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  document.addEventListener('keydown', function handler(e) {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', handler); }
+  });
+}
+
 const uploadInput = controls.querySelector<HTMLInputElement>('#image-upload')!;
 const gridSelect = controls.querySelector<HTMLSelectElement>('#grid-size')!;
 const recordBtn = controls.querySelector<HTMLButtonElement>('#record-btn')!;
@@ -95,13 +124,14 @@ recordBtn.addEventListener('click', async () => {
     recorderHandle = null;
 
     try {
+      showProgress('Stopping recording...', 0);
       const video = await handle.stop();
       const currentState = store.getState();
       const updatedVideos = new Map(currentState.videos);
       updatedVideos.set(video.id, video);
       store.update({ videos: updatedVideos });
 
-      const match = await findBestMatch(video.blob, currentState.tiles, currentState.sourceImageData!);
+      const match = await findBestMatch(video.blob, currentState.tiles, currentState.sourceImageData!, showProgress);
       if (match) {
         const updatedTiles = currentState.tiles.map((tile) =>
           tile.id === match.tileId
@@ -121,7 +151,9 @@ recordBtn.addEventListener('click', async () => {
       }
     } catch (err) {
       console.error('Recording/matching failed:', err);
+      showError('Something went wrong while processing your recording. Please try again.');
     } finally {
+      hideProgress();
       handle.stream.getTracks().forEach((t) => t.stop());
       const afterState = store.getState();
       const allDone = afterState.completedCount === afterState.tiles.length && afterState.tiles.length > 0;

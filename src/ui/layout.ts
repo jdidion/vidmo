@@ -39,7 +39,7 @@ export function createLayout(container: HTMLElement): {
 
   const gridSelect = document.createElement('select');
   gridSelect.id = 'grid-size';
-  const sizes = ['4x4', '6x6', '8x8', '10x10'];
+  const sizes = ['4x4', '6x6', '8x8', '10x10', '12x12', '16x16', '20x20'];
   for (const size of sizes) {
     const option = document.createElement('option');
     option.value = size;
@@ -58,26 +58,47 @@ export function createLayout(container: HTMLElement): {
   resetBtn.id = 'reset-btn';
   resetBtn.textContent = 'Reset';
 
+  const saveBtn = document.createElement('button');
+  saveBtn.id = 'save-btn';
+  saveBtn.textContent = 'Save';
+  saveBtn.disabled = true;
+
+  const loadLabel = document.createElement('label');
+  loadLabel.className = 'upload-label';
+  loadLabel.textContent = 'Load';
+  const loadInput = document.createElement('input');
+  loadInput.type = 'file';
+  loadInput.accept = '.vidmo';
+  loadInput.id = 'load-input';
+  loadLabel.appendChild(loadInput);
+
   controls.appendChild(uploadLabel);
   controls.appendChild(gridSelect);
   controls.appendChild(recordBtn);
   controls.appendChild(resetBtn);
+  controls.appendChild(saveBtn);
+  controls.appendChild(loadLabel);
 
   // Preview
   const preview = document.createElement('div');
   preview.className = 'preview hidden';
 
+  const monitorLabel = document.createElement('div');
+  monitorLabel.className = 'monitor-label';
+  monitorLabel.textContent = 'REC';
+
   const video = document.createElement('video');
   video.autoplay = true;
   video.muted = true;
   video.playsInline = true;
+  preview.appendChild(monitorLabel);
   preview.appendChild(video);
 
-  // Assemble
+  // Assemble — preview above grid so it's prominent during recording
   container.appendChild(header);
   container.appendChild(controls);
-  container.appendChild(grid);
   container.appendChild(preview);
+  container.appendChild(grid);
 
   return { grid, controls, preview, header };
 }

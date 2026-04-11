@@ -1,10 +1,13 @@
 import type { Tile, MatchResult } from '../types';
 import { extractFrames } from '../video/frame-extractor';
 import { compareHistograms } from '../image/histogram';
+import { adjustColors } from '../image/color-adjust';
+import { extractTilePixels } from '../image/tile-splitter';
 
 export async function findBestMatch(
   videoBlob: Blob,
   tiles: Tile[],
+  sourceImageData: ImageData,
 ): Promise<MatchResult | null> {
   const unmatched = tiles.filter((tile) => tile.matched === false);
   if (unmatched.length === 0) return null;
@@ -28,5 +31,12 @@ export async function findBestMatch(
     }
   }
 
-  return { tileId: bestTile.id, frame: bestFrame, similarity: bestSimilarity };
+  const tilePixels = extractTilePixels(sourceImageData, bestTile);
+  const adjustedImageData = adjustColors(bestFrame.imageData, tilePixels);
+
+  return {
+    tileId: bestTile.id,
+    frame: { ...bestFrame, imageData: adjustedImageData },
+    similarity: bestSimilarity,
+  };
 }

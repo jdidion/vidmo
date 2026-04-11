@@ -7,6 +7,7 @@ import type { Histogram } from '../types';
 export function computeHistogram(pixels: Uint8ClampedArray): Histogram {
   const histogram = new Float32Array(32);
   const pixelCount = pixels.length / 4;
+  if (pixelCount === 0) return histogram;
 
   for (let i = 0; i < pixels.length; i += 4) {
     const rBin = Math.floor(pixels[i] / 32);

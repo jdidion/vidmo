@@ -23,6 +23,7 @@ export function createStore() {
 
   function update(partial: Partial<AppState>): void {
     state = { ...state, ...partial };
+    if (partial.tiles) state.tiles = [...partial.tiles];
     listeners.forEach((listener) => listener(state));
   }
 

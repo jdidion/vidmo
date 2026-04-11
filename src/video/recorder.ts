@@ -40,7 +40,11 @@ export async function startRecording(
   recorder.start();
 
   const stop = (): Promise<RecordedVideo> =>
-    new Promise((resolve) => {
+    new Promise((resolve, reject) => {
+      recorder.addEventListener('error', (e) => {
+        stream.getTracks().forEach((t) => t.stop());
+        reject(new Error(`Recording failed: ${e}`));
+      }, { once: true });
       recorder.addEventListener(
         'stop',
         () => {

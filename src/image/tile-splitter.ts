@@ -29,15 +29,17 @@ export function splitImageIntoTiles(
   rows: number,
   cols: number,
 ): Tile[] {
-  const tileWidth = Math.floor(imageData.width / cols);
-  const tileHeight = Math.floor(imageData.height / rows);
+  const baseTileWidth = Math.floor(imageData.width / cols);
+  const baseTileHeight = Math.floor(imageData.height / rows);
   const tiles: Tile[] = [];
   let id = 0;
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      const x = col * tileWidth;
-      const y = row * tileHeight;
+      const x = col * baseTileWidth;
+      const y = row * baseTileHeight;
+      const tileWidth = col === cols - 1 ? imageData.width - x : baseTileWidth;
+      const tileHeight = row === rows - 1 ? imageData.height - y : baseTileHeight;
 
       const pixels = extractTilePixels(imageData, {
         x,

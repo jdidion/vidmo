@@ -19,30 +19,32 @@ export async function extractFrames(
   const objectUrl = URL.createObjectURL(videoBlob);
   video.src = objectUrl;
 
-  await waitForEvent(video, 'loadedmetadata');
+  try {
+    await waitForEvent(video, 'loadedmetadata');
 
-  let N = Math.min(Math.ceil(video.duration * 2), 30);
-  if (N < 1) N = 1;
+    let N = Math.min(Math.ceil(video.duration * 2), 30);
+    if (N < 1) N = 1;
 
-  const canvas = document.createElement('canvas');
-  canvas.width = targetWidth;
-  canvas.height = targetHeight;
-  const ctx = canvas.getContext('2d')!;
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext('2d')!;
 
-  const frames: ExtractedFrame[] = [];
+    const frames: ExtractedFrame[] = [];
 
-  for (let i = 0; i < N; i++) {
-    video.currentTime = ((i + 0.5) * video.duration) / N;
-    await waitForEvent(video, 'seeked');
+    for (let i = 0; i < N; i++) {
+      video.currentTime = ((i + 0.5) * video.duration) / N;
+      await waitForEvent(video, 'seeked');
 
-    ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
-    const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
-    const histogram = computeHistogram(imageData.data);
+      ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+      const histogram = computeHistogram(imageData.data);
 
-    frames.push({ time: video.currentTime, imageData, histogram });
+      frames.push({ time: video.currentTime, imageData, histogram });
+    }
+
+    return frames;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
   }
-
-  URL.revokeObjectURL(objectUrl);
-
-  return frames;
 }

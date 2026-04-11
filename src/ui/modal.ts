@@ -6,6 +6,8 @@ export function closeModal(): void {
     const video = backdrop.querySelector('video');
     if (video) {
       video.pause();
+      video.removeAttribute('src');
+      video.load();
     }
     backdrop.remove();
   }

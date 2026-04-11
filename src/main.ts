@@ -52,6 +52,7 @@ onGridSizeChange(gridSelect, (rows, cols) => {
 
   const partial: Partial<typeof state> = { gridRows: rows, gridCols: cols };
   if (state.sourceImageData) {
+    state.videos.forEach((v) => URL.revokeObjectURL(v.objectUrl));
     partial.tiles = splitImageIntoTiles(state.sourceImageData, rows, cols);
     partial.completedCount = 0;
     partial.videos = new Map();
@@ -61,13 +62,21 @@ onGridSizeChange(gridSelect, (rows, cols) => {
 
 // Record button: toggle recording and run matching on stop
 recordBtn.addEventListener('click', async () => {
+  recordBtn.disabled = true;
   const state = store.getState();
 
   if (state.phase === 'image-loaded') {
     // Start recording
     store.update({ phase: 'recording' });
     preview.classList.remove('hidden');
-    recorderHandle = await startRecording(previewVideo);
+    try {
+      recorderHandle = await startRecording(previewVideo);
+    } catch {
+      alert('Camera access was denied. Please allow camera access and try again.');
+      preview.classList.add('hidden');
+      store.update({ phase: 'image-loaded' });
+      return;
+    }
     recordBtn.textContent = 'Stop';
     recordBtn.classList.add('recording');
   } else if (state.phase === 'recording' && recorderHandle) {
@@ -78,33 +87,49 @@ recordBtn.addEventListener('click', async () => {
     preview.classList.add('hidden');
     recordBtn.classList.remove('recording');
 
-    const video = await recorderHandle.stop();
-    const currentState = store.getState();
-    currentState.videos.set(video.id, video);
-    store.update({ videos: currentState.videos });
-
-    const match = await findBestMatch(video.blob, currentState.tiles);
-    if (match) {
-      const updatedTiles = currentState.tiles.map((tile) =>
-        tile.id === match.tileId
-          ? {
-              ...tile,
-              matched: true,
-              matchedVideoId: video.id,
-              matchedFrameData: match.frame.imageData,
-            }
-          : tile,
-      );
-      store.update({
-        tiles: updatedTiles,
-        completedCount: currentState.completedCount + 1,
-      });
-    }
-
-    store.update({ phase: 'image-loaded' });
-    recordBtn.disabled = false;
-    recordBtn.textContent = 'Record';
+    const handle = recorderHandle;
     recorderHandle = null;
+
+    try {
+      const video = await handle.stop();
+      const currentState = store.getState();
+      const updatedVideos = new Map(currentState.videos);
+      updatedVideos.set(video.id, video);
+      store.update({ videos: updatedVideos });
+
+      const match = await findBestMatch(video.blob, currentState.tiles);
+      if (match) {
+        const updatedTiles = currentState.tiles.map((tile) =>
+          tile.id === match.tileId
+            ? {
+                ...tile,
+                matched: true,
+                matchedVideoId: video.id,
+                matchedFrameData: match.frame.imageData,
+              }
+            : tile,
+        );
+        const newCount = updatedTiles.filter((t) => t.matched).length;
+        store.update({
+          tiles: updatedTiles,
+          completedCount: newCount,
+        });
+      }
+    } catch (err) {
+      console.error('Recording/matching failed:', err);
+    } finally {
+      handle.stream.getTracks().forEach((t) => t.stop());
+      const afterState = store.getState();
+      const allDone = afterState.completedCount === afterState.tiles.length && afterState.tiles.length > 0;
+      store.update({ phase: 'image-loaded' });
+      if (!allDone) {
+        recordBtn.disabled = false;
+        recordBtn.textContent = 'Record';
+      } else {
+        recordBtn.disabled = true;
+        recordBtn.textContent = 'Complete';
+      }
+    }
   }
 });
 
@@ -115,6 +140,8 @@ resetBtn.addEventListener('click', () => {
   state.videos.forEach((video) => {
     URL.revokeObjectURL(video.objectUrl);
   });
+  preview.classList.add('hidden');
+  previewVideo.srcObject = null;
   store.reset();
   gridSelect.value = '8x8';
 });
@@ -123,6 +150,9 @@ resetBtn.addEventListener('click', () => {
 store.subscribe((state) => {
   // Update record button state
   recordBtn.disabled = state.phase === 'idle' || state.phase === 'processing';
+
+  // Disable grid-size change during recording/processing
+  gridSelect.disabled = state.phase === 'recording' || state.phase === 'processing';
 
   // Update progress
   updateProgress(progressEl, state.completedCount, state.tiles.length);
@@ -147,5 +177,18 @@ store.subscribe((state) => {
     );
   } else {
     grid.innerHTML = '';
+  }
+
+  // Show celebration when mosaic is complete
+  let celebrationEl = document.querySelector('.celebration') as HTMLElement | null;
+  if (state.completedCount === state.tiles.length && state.tiles.length > 0) {
+    if (!celebrationEl) {
+      celebrationEl = document.createElement('div');
+      celebrationEl.className = 'celebration';
+      celebrationEl.textContent = 'Mosaic Complete!';
+      grid.parentElement?.insertBefore(celebrationEl, grid.nextSibling);
+    }
+  } else if (celebrationEl) {
+    celebrationEl.remove();
   }
 });

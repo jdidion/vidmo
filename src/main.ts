@@ -37,7 +37,8 @@ function hideProgress() {
 function showError(message: string) {
   const backdrop = document.createElement('div');
   backdrop.className = 'error-modal-backdrop';
-  backdrop.innerHTML = `<div class="error-modal"><div class="error-modal-icon">!</div><div class="error-modal-message">${message}</div><button class="error-modal-close">OK</button></div>`;
+  backdrop.innerHTML = '<div class="error-modal"><div class="error-modal-icon">!</div><div class="error-modal-message"></div><button class="error-modal-close">OK</button></div>';
+  backdrop.querySelector('.error-modal-message')!.textContent = message;
   document.body.appendChild(backdrop);
   const close = () => backdrop.remove();
   backdrop.querySelector('.error-modal-close')!.addEventListener('click', close);

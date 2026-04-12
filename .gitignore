@@ -4,3 +4,8 @@ dist
 .claude
 *.local
 .env*
+.DS_Store
+*.log
+.vscode/
+.idea/
+*.tgz

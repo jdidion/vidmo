@@ -22,30 +22,40 @@ export function extractTilePixels(
 }
 
 /**
- * Split an ImageData into a grid of tiles, computing a histogram for each.
+ * Compute grid dimensions for square tiles given an image size and column count.
+ */
+export function computeSquareGrid(
+  imageWidth: number,
+  imageHeight: number,
+  cols: number,
+): { rows: number; cols: number; tileSize: number } {
+  const tileSize = Math.floor(imageWidth / cols);
+  const rows = Math.floor(imageHeight / tileSize);
+  return { rows, cols, tileSize };
+}
+
+/**
+ * Split an ImageData into a grid of square tiles, computing a histogram for each.
  */
 export function splitImageIntoTiles(
   imageData: ImageData,
   rows: number,
   cols: number,
 ): Tile[] {
-  const baseTileWidth = Math.floor(imageData.width / cols);
-  const baseTileHeight = Math.floor(imageData.height / rows);
+  const tileSize = Math.floor(imageData.width / cols);
   const tiles: Tile[] = [];
   let id = 0;
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      const x = col * baseTileWidth;
-      const y = row * baseTileHeight;
-      const tileWidth = col === cols - 1 ? imageData.width - x : baseTileWidth;
-      const tileHeight = row === rows - 1 ? imageData.height - y : baseTileHeight;
+      const x = col * tileSize;
+      const y = row * tileSize;
 
       const pixels = extractTilePixels(imageData, {
         x,
         y,
-        width: tileWidth,
-        height: tileHeight,
+        width: tileSize,
+        height: tileSize,
       });
 
       tiles.push({
@@ -54,8 +64,8 @@ export function splitImageIntoTiles(
         col,
         x,
         y,
-        width: tileWidth,
-        height: tileHeight,
+        width: tileSize,
+        height: tileSize,
         histogram: computeHistogram(pixels),
         matched: false,
         matchedVideoId: null,

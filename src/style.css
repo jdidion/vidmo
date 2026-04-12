@@ -50,6 +50,7 @@ body {
   overflow: hidden;
   border-radius: 2px;
   background: #2a2a4a;
+  aspect-ratio: 1;
 }
 
 .tile canvas {

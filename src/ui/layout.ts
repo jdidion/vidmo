@@ -37,16 +37,20 @@ export function createLayout(container: HTMLElement): {
   uploadInput.id = 'image-upload';
   uploadLabel.appendChild(uploadInput);
 
+  const gridLabel = document.createElement('label');
+  gridLabel.textContent = 'Columns: ';
+  gridLabel.style.cssText = 'font-size:0.9rem;display:flex;align-items:center;gap:0.4rem';
   const gridSelect = document.createElement('select');
   gridSelect.id = 'grid-size';
-  const sizes = ['4x4', '6x6', '8x8', '10x10', '12x12', '16x16', '20x20'];
-  for (const size of sizes) {
+  const colCounts = [4, 6, 8, 10, 12, 16, 20];
+  for (const n of colCounts) {
     const option = document.createElement('option');
-    option.value = size;
-    option.textContent = size;
-    if (size === '8x8') option.selected = true;
+    option.value = String(n);
+    option.textContent = String(n);
+    if (n === 8) option.selected = true;
     gridSelect.appendChild(option);
   }
+  gridLabel.appendChild(gridSelect);
 
   const recordBtn = document.createElement('button');
   recordBtn.id = 'record-btn';
@@ -73,7 +77,7 @@ export function createLayout(container: HTMLElement): {
   loadLabel.appendChild(loadInput);
 
   controls.appendChild(uploadLabel);
-  controls.appendChild(gridSelect);
+  controls.appendChild(gridLabel);
   controls.appendChild(recordBtn);
   controls.appendChild(resetBtn);
   controls.appendChild(saveBtn);

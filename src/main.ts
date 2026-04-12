@@ -3,7 +3,7 @@ import { createStore } from './state';
 import { createLayout } from './ui/layout';
 import { onImageUpload, onGridSizeChange, updateProgress } from './ui/controls';
 import { renderGrid } from './ui/grid-renderer';
-import { splitImageIntoTiles } from './image/tile-splitter';
+import { splitImageIntoTiles, computeSquareGrid } from './image/tile-splitter';
 import { openModal } from './ui/modal';
 import { saveMosaic, loadMosaic } from './persistence';
 import { startRecording } from './video/recorder';
@@ -57,11 +57,14 @@ const progressEl = header.querySelector<HTMLElement>('#progress')!;
 
 // Wire image upload
 onImageUpload(uploadInput, (img, imageData) => {
-  const { gridRows, gridCols } = store.getState();
-  const tiles = splitImageIntoTiles(imageData, gridRows, gridCols);
+  const { gridCols } = store.getState();
+  const { rows, cols } = computeSquareGrid(imageData.width, imageData.height, gridCols);
+  const tiles = splitImageIntoTiles(imageData, rows, cols);
   store.update({
     sourceImage: img,
     sourceImageData: imageData,
+    gridRows: rows,
+    gridCols: cols,
     tiles,
     phase: 'image-loaded',
     completedCount: 0,
@@ -70,22 +73,24 @@ onImageUpload(uploadInput, (img, imageData) => {
 });
 
 // Wire grid size change
-onGridSizeChange(gridSelect, (rows, cols) => {
+onGridSizeChange(gridSelect, (cols) => {
   const state = store.getState();
   if (state.completedCount > 0) {
     const confirmed = window.confirm(
       'Changing grid size will reset matched tiles. Continue?',
     );
     if (!confirmed) {
-      gridSelect.value = `${state.gridRows}x${state.gridCols}`;
+      gridSelect.value = String(state.gridCols);
       return;
     }
   }
 
-  const partial: Partial<typeof state> = { gridRows: rows, gridCols: cols };
+  const partial: Partial<typeof state> = { gridCols: cols };
   if (state.sourceImageData) {
+    const sq = computeSquareGrid(state.sourceImageData.width, state.sourceImageData.height, cols);
     state.videos.forEach((v) => URL.revokeObjectURL(v.objectUrl));
-    partial.tiles = splitImageIntoTiles(state.sourceImageData, rows, cols);
+    partial.gridRows = sq.rows;
+    partial.tiles = splitImageIntoTiles(state.sourceImageData, sq.rows, sq.cols);
     partial.completedCount = 0;
     partial.videos = new Map();
   }
@@ -179,7 +184,7 @@ resetBtn.addEventListener('click', () => {
   preview.classList.add('hidden');
   previewVideo.srcObject = null;
   store.reset();
-  gridSelect.value = '8x8';
+  gridSelect.value = '8';
 });
 
 // Save button
@@ -219,7 +224,7 @@ loadInput.addEventListener('change', async () => {
       videos: data.videos,
       completedCount: data.completedCount,
     });
-    gridSelect.value = `${data.gridRows}x${data.gridCols}`;
+    gridSelect.value = String(data.gridCols);
   } catch (err) {
     alert('Failed to load mosaic file.');
     console.error(err);

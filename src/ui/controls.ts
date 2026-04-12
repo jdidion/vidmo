@@ -37,11 +37,10 @@ export function onImageUpload(
 
 export function onGridSizeChange(
   select: HTMLSelectElement,
-  callback: (rows: number, cols: number) => void,
+  callback: (cols: number) => void,
 ): void {
   select.addEventListener('change', () => {
-    const [rows, cols] = select.value.split('x').map(Number);
-    callback(rows, cols);
+    callback(Number(select.value));
   });
 }
 

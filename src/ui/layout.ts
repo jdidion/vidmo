@@ -99,11 +99,23 @@ export function createLayout(container: HTMLElement): {
   preview.appendChild(monitorLabel);
   preview.appendChild(video);
 
+  // Footer
+  const footer = document.createElement('footer');
+  footer.className = 'footer';
+  const footerLogo = document.createElement('img');
+  footerLogo.src = '/logo.svg';
+  footerLogo.alt = 'Vidmo';
+  const footerText = document.createElement('div');
+  footerText.textContent = 'Created by Jack and John Didion (with help from Claude)';
+  footer.appendChild(footerLogo);
+  footer.appendChild(footerText);
+
   // Assemble — preview above grid so it's prominent during recording
   container.appendChild(header);
   container.appendChild(controls);
   container.appendChild(preview);
   container.appendChild(grid);
+  container.appendChild(footer);
 
   return { grid, controls, preview, header };
 }

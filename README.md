@@ -1,6 +1,8 @@
-# Vidmo
+<p align="center">
+  <img src="public/logo.svg" alt="Vidmo" width="280">
+</p>
 
-Video mosaic builder -- upload an image, record short video clips, and fill each tile of a grid with the best-matching frame.
+<p align="center">Video mosaic builder — upload an image, record short video clips, and fill each tile of a grid with the best-matching frame.</p>
 
 ## Install
 

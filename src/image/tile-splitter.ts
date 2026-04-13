@@ -47,10 +47,12 @@ export function splitImageIntoTiles(
   cols: number,
 ): Tile[] {
   const tileSize = Math.floor(imageData.width / cols);
+  const maxRows = Math.floor(imageData.height / tileSize);
+  const safeRows = Math.min(rows, maxRows);
   const tiles: Tile[] = [];
   let id = 0;
 
-  for (let row = 0; row < rows; row++) {
+  for (let row = 0; row < safeRows; row++) {
     for (let col = 0; col < cols; col++) {
       const x = col * tileSize;
       const y = row * tileSize;

@@ -33,14 +33,24 @@ export async function startRecording(
   const recorder = new MediaRecorder(stream, options);
   const chunks: Blob[] = [];
 
+  let recordingError: Error | null = null;
+
   recorder.addEventListener('dataavailable', (e) => {
     if (e.data.size > 0) chunks.push(e.data);
+  });
+
+  recorder.addEventListener('error', (e) => {
+    recordingError = new Error(`Recording failed: ${e}`);
   });
 
   recorder.start();
 
   const stop = (): Promise<RecordedVideo> =>
     new Promise((resolve, reject) => {
+      if (recordingError) {
+        stream.getTracks().forEach((t) => t.stop());
+        return reject(recordingError);
+      }
       recorder.addEventListener('error', (e) => {
         stream.getTracks().forEach((t) => t.stop());
         reject(new Error(`Recording failed: ${e}`));

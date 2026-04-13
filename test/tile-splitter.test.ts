@@ -20,10 +20,11 @@ function makeImageData(width: number, height: number, fill?: (x: number, y: numb
 }
 
 describe('splitImageIntoTiles', () => {
-  it('returns the correct number of tiles (rows * cols)', () => {
+  it('returns the correct number of tiles (rows * cols), clamped to image bounds', () => {
     const img = makeImageData(100, 100);
+    // tileSize = floor(100/4) = 25, maxRows = floor(100/25) = 4, safeRows = min(5,4) = 4
     const tiles = splitImageIntoTiles(img, 5, 4);
-    expect(tiles.length).toBe(20);
+    expect(tiles.length).toBe(16);
   });
 
   it('computes correct tile coordinates and dimensions', () => {

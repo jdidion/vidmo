@@ -1,4 +1,6 @@
 import type { AppState, Tile, RecordedVideo } from './types';
+import { computeHistogram } from './image/histogram';
+import { extractTilePixels } from './image/tile-splitter';
 
 interface SavedTile {
   id: number;
@@ -183,6 +185,14 @@ export async function loadMosaic(file: File): Promise<{
       objectUrl,
       timestamp: saved.timestamp,
     });
+  }
+
+  // Recompute histograms for unmatched tiles so future matching works correctly
+  for (const tile of tiles) {
+    if (!tile.matched) {
+      const pixels = extractTilePixels(sourceImageData, tile);
+      tile.histogram = computeHistogram(pixels);
+    }
   }
 
   const completedCount = tiles.filter((t) => t.matched).length;

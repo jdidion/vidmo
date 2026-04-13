@@ -143,6 +143,11 @@ recordBtn.addEventListener('click', async () => {
       const match = await findBestMatch(video.blob, currentState.tiles, currentState.sourceImageData!, showProgress);
       if (match) {
         const freshState = store.getState();
+        const targetTile = freshState.tiles.find((t) => t.id === match.tileId);
+        if (!targetTile || targetTile.width !== match.frame.imageData.width || targetTile.height !== match.frame.imageData.height) {
+          // Grid was changed during processing; discard stale match
+          return;
+        }
         const updatedTiles = freshState.tiles.map((tile) =>
           tile.id === match.tileId
             ? {

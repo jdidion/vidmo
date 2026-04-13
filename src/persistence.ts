@@ -135,7 +135,8 @@ export async function loadMosaic(file: File): Promise<{
     typeof data.gridRows !== 'number' ||
     typeof data.gridCols !== 'number' ||
     !data.sourceImageBase64 ||
-    !Array.isArray(data.tiles)
+    !Array.isArray(data.tiles) ||
+    !Array.isArray(data.videos)
   ) {
     throw new Error('Invalid or unsupported mosaic file format');
   }

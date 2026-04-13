@@ -48,11 +48,9 @@ export async function startRecording(
   const stop = (): Promise<RecordedVideo> =>
     new Promise((resolve, reject) => {
       if (recordingError) {
-        stream.getTracks().forEach((t) => t.stop());
         return reject(recordingError);
       }
       recorder.addEventListener('error', (e) => {
-        stream.getTracks().forEach((t) => t.stop());
         reject(new Error(`Recording failed: ${e}`));
       }, { once: true });
       recorder.addEventListener(
@@ -62,8 +60,6 @@ export async function startRecording(
             type: recorder.mimeType || 'video/webm',
           });
           const objectUrl = URL.createObjectURL(blob);
-
-          stream.getTracks().forEach((t) => t.stop());
 
           resolve({
             id: crypto.randomUUID(),

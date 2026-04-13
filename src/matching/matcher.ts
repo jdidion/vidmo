@@ -28,6 +28,7 @@ export async function findBestMatch(
   let bestFrame = frames[0];
   let bestTile = unmatched[0];
 
+  outer:
   for (const frame of frames) {
     for (const tile of unmatched) {
       const similarity = compareHistograms(frame.histogram, tile.histogram);
@@ -35,6 +36,7 @@ export async function findBestMatch(
         bestSimilarity = similarity;
         bestFrame = frame;
         bestTile = tile;
+        if (similarity >= 0.999) break outer;
       }
     }
   }

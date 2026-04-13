@@ -9,6 +9,7 @@ import { saveMosaic, loadMosaic } from './persistence';
 import { startRecording } from './video/recorder';
 import { findBestMatch } from './matching/matcher';
 import type { RecorderHandle } from './video/recorder';
+import type { RecordedVideo } from './types';
 
 const store = createStore();
 
@@ -117,6 +118,7 @@ recordBtn.addEventListener('click', async () => {
     }
     recordBtn.textContent = 'Stop';
     recordBtn.classList.add('recording');
+    recordBtn.disabled = false;
   } else if (state.phase === 'recording' && recorderHandle) {
     // Stop recording and match
     store.update({ phase: 'processing' });
@@ -129,9 +131,10 @@ recordBtn.addEventListener('click', async () => {
     const handle = recorderHandle;
     recorderHandle = null;
 
+    let video: RecordedVideo | undefined;
     try {
       showProgress('Stopping recording...', 0);
-      const video = await handle.stop();
+      video = await handle.stop();
       const currentState = store.getState();
       const updatedVideos = new Map(currentState.videos);
       updatedVideos.set(video.id, video);
@@ -139,12 +142,13 @@ recordBtn.addEventListener('click', async () => {
 
       const match = await findBestMatch(video.blob, currentState.tiles, currentState.sourceImageData!, showProgress);
       if (match) {
-        const updatedTiles = currentState.tiles.map((tile) =>
+        const freshState = store.getState();
+        const updatedTiles = freshState.tiles.map((tile) =>
           tile.id === match.tileId
             ? {
                 ...tile,
                 matched: true,
-                matchedVideoId: video.id,
+                matchedVideoId: video!.id,
                 matchedFrameData: match.frame.imageData,
               }
             : tile,
@@ -158,6 +162,12 @@ recordBtn.addEventListener('click', async () => {
     } catch (err) {
       console.error('Recording/matching failed:', err);
       showError('Something went wrong while processing your recording. Please try again.');
+      // Clean up video object URL if it was created before the error
+      if (video) {
+        const failState = store.getState();
+        const failedVideo = failState.videos.get(video.id);
+        if (failedVideo) URL.revokeObjectURL(failedVideo.objectUrl);
+      }
     } finally {
       hideProgress();
       handle.stream.getTracks().forEach((t) => t.stop());

@@ -24,6 +24,7 @@ export function createStore() {
   function update(partial: Partial<AppState>): void {
     state = { ...state, ...partial };
     if (partial.tiles) state.tiles = [...partial.tiles];
+    if (partial.videos) state.videos = new Map(partial.videos);
     listeners.forEach((listener) => listener(state));
   }
 

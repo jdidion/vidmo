@@ -1,7 +1,6 @@
 import { Tile } from '../types';
 
-let prevTiles: Tile[] = [];
-let prevCols = 0;
+const renderState = new WeakMap<HTMLElement, { prevTiles: Tile[]; prevCols: number }>();
 
 function drawTile(
   div: HTMLElement,
@@ -55,8 +54,9 @@ export function renderGrid(
   sourceImageData: ImageData,
   onTileClick: (tileId: number) => void,
 ): void {
-  // Full rebuild only when grid structure changes
-  if (tiles.length !== prevTiles.length || cols !== prevCols) {
+  const prev = renderState.get(container) ?? { prevTiles: [], prevCols: 0 };
+
+  if (tiles.length !== prev.prevTiles.length || cols !== prev.prevCols) {
     container.innerHTML = '';
     container.style.setProperty('--grid-cols', String(cols));
     for (const tile of tiles) {
@@ -64,17 +64,15 @@ export function renderGrid(
       drawTile(div, tile, sourceImageData, onTileClick);
       container.appendChild(div);
     }
-    prevTiles = tiles;
-    prevCols = cols;
+    renderState.set(container, { prevTiles: tiles, prevCols: cols });
     return;
   }
 
-  // Incremental update: only redraw tiles that changed
   const children = container.children;
   for (let i = 0; i < tiles.length; i++) {
-    if (tiles[i] !== prevTiles[i]) {
+    if (tiles[i] !== prev.prevTiles[i]) {
       drawTile(children[i] as HTMLElement, tiles[i], sourceImageData, onTileClick);
     }
   }
-  prevTiles = tiles;
+  renderState.set(container, { prevTiles: tiles, prevCols: cols });
 }

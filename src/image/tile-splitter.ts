@@ -29,7 +29,11 @@ export function computeSquareGrid(
   imageHeight: number,
   cols: number,
 ): { rows: number; cols: number; tileSize: number } {
+  if (cols <= 0 || imageWidth <= 0 || imageHeight <= 0) {
+    return { rows: 0, cols: 0, tileSize: 0 };
+  }
   const tileSize = Math.floor(imageWidth / cols);
+  if (tileSize <= 0) return { rows: 0, cols: 0, tileSize: 0 };
   const rows = Math.floor(imageHeight / tileSize);
   return { rows, cols, tileSize };
 }

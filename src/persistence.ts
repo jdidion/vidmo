@@ -38,8 +38,13 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 function dataUrlToBlob(dataUrl: string): Blob {
-  const [header, base64] = dataUrl.split(',');
-  const mime = header.match(/:(.*?);/)![1];
+  const commaIdx = dataUrl.indexOf(',');
+  if (commaIdx === -1) throw new Error('Invalid data URL');
+  const header = dataUrl.slice(0, commaIdx);
+  const base64 = dataUrl.slice(commaIdx + 1);
+  const mimeMatch = header.match(/:(.*?);/);
+  if (!mimeMatch) throw new Error('Invalid data URL: missing MIME type');
+  const mime = mimeMatch[1];
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -122,22 +127,32 @@ export async function loadMosaic(file: File): Promise<{
   completedCount: number;
 }> {
   const text = await file.text();
-  const data: MosaicFile = JSON.parse(text);
+  const data = JSON.parse(text);
+  if (
+    data.version !== 1 ||
+    typeof data.gridRows !== 'number' ||
+    typeof data.gridCols !== 'number' ||
+    !data.sourceImageBase64 ||
+    !Array.isArray(data.tiles)
+  ) {
+    throw new Error('Invalid or unsupported mosaic file format');
+  }
+  const mosaic: MosaicFile = data;
 
   // Reconstruct source image
   const sourceImage = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = data.sourceImageBase64;
+    img.src = mosaic.sourceImageBase64;
   });
 
   // Reconstruct source ImageData
-  const sourceImageData = await dataUrlToImageData(data.sourceImageBase64);
+  const sourceImageData = await dataUrlToImageData(mosaic.sourceImageBase64);
 
   // Reconstruct tiles
   const tiles: Tile[] = await Promise.all(
-    data.tiles.map(async (saved) => {
+    mosaic.tiles.map(async (saved) => {
       const matchedFrameData = saved.frameDataUrl
         ? await dataUrlToImageData(saved.frameDataUrl)
         : null;
@@ -159,7 +174,7 @@ export async function loadMosaic(file: File): Promise<{
 
   // Reconstruct videos
   const videos = new Map<string, RecordedVideo>();
-  for (const saved of data.videos) {
+  for (const saved of mosaic.videos) {
     const blob = dataUrlToBlob(saved.blobDataUrl);
     const objectUrl = URL.createObjectURL(blob);
     videos.set(saved.id, {
@@ -175,8 +190,8 @@ export async function loadMosaic(file: File): Promise<{
   return {
     sourceImage,
     sourceImageData,
-    gridRows: data.gridRows,
-    gridCols: data.gridCols,
+    gridRows: mosaic.gridRows,
+    gridCols: mosaic.gridCols,
     tiles,
     videos,
     completedCount,

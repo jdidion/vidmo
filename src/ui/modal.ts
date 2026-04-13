@@ -1,5 +1,6 @@
 let escapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
+/** Close and remove the video playback modal, if open. */
 export function closeModal(): void {
   const backdrop = document.querySelector('.modal-backdrop');
   if (backdrop) {
@@ -17,6 +18,7 @@ export function closeModal(): void {
   }
 }
 
+/** Open a full-screen modal that plays the video at `videoUrl`. */
 export function openModal(videoUrl: string): void {
   // Close any existing modal first
   closeModal();

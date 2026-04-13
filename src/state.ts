@@ -13,6 +13,7 @@ const initialState: AppState = {
   completedCount: 0,
 };
 
+/** Create a reactive store that notifies listeners on state changes. */
 export function createStore() {
   let state: AppState = { ...initialState, videos: new Map() };
   const listeners = new Set<Listener>();

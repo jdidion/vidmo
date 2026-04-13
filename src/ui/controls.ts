@@ -1,5 +1,6 @@
 const MAX_DIMENSION = 1920;
 
+/** Listen for file selection on `input` and deliver the loaded image and its pixel data. */
 export function onImageUpload(
   input: HTMLInputElement,
   callback: (img: HTMLImageElement, imageData: ImageData) => void,
@@ -35,6 +36,7 @@ export function onImageUpload(
   });
 }
 
+/** Listen for changes on a grid-size select element and deliver the new column count. */
 export function onGridSizeChange(
   select: HTMLSelectElement,
   callback: (cols: number) => void,
@@ -44,6 +46,7 @@ export function onGridSizeChange(
   });
 }
 
+/** Update the progress label with "completed / total tiles". */
 export function updateProgress(
   el: HTMLElement,
   completed: number,

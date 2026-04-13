@@ -18,6 +18,7 @@ function negotiateMimeType(): string {
   return '';
 }
 
+/** Request camera access, start a MediaRecorder, and return a handle to stop it. */
 export async function startRecording(
   previewEl: HTMLVideoElement,
 ): Promise<RecorderHandle> {
@@ -76,6 +77,7 @@ export async function startRecording(
   return { stream, stop };
 }
 
+/** Stop all tracks on the given media stream to release the camera. */
 export function releaseCamera(stream: MediaStream): void {
   stream.getTracks().forEach((t) => t.stop());
 }

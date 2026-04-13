@@ -47,6 +47,7 @@ function drawTile(
   if (!div.contains(canvas)) div.appendChild(canvas);
 }
 
+/** Render tile canvases into `container`, diffing against previous state to minimize DOM work. */
 export function renderGrid(
   container: HTMLElement,
   tiles: Tile[],

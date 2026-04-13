@@ -1,3 +1,4 @@
+/** Build the top-level DOM structure (header, controls, preview, grid) inside `container`. */
 export function createLayout(container: HTMLElement): {
   grid: HTMLElement;
   controls: HTMLElement;

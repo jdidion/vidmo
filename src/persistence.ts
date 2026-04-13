@@ -78,6 +78,7 @@ function dataUrlToImageData(dataUrl: string): Promise<ImageData> {
   });
 }
 
+/** Serialize the current mosaic state (image, tiles, videos) to a JSON blob. */
 export async function saveMosaic(state: AppState): Promise<Blob> {
   const sourceImageBase64 = state.sourceImageData
     ? imageDataToDataUrl(state.sourceImageData)
@@ -119,6 +120,7 @@ export async function saveMosaic(state: AppState): Promise<Blob> {
   return new Blob([JSON.stringify(mosaicFile)], { type: 'application/json' });
 }
 
+/** Deserialize a .vidmo file back into full app state, recomputing histograms for unmatched tiles. */
 export async function loadMosaic(file: File): Promise<{
   sourceImage: HTMLImageElement;
   sourceImageData: ImageData;

@@ -6,6 +6,10 @@ import { extractTilePixels } from '../image/tile-splitter';
 
 export type ProgressCallback = (stage: string, fraction: number) => void;
 
+/**
+ * Find the unmatched tile best matching a video recording via histogram comparison.
+ * Color-adjusts the winning frame to blend with the tile's palette.
+ */
 export async function findBestMatch(
   videoBlob: Blob,
   tiles: Tile[],

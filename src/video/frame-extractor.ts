@@ -49,6 +49,7 @@ async function resolveDuration(video: HTMLVideoElement): Promise<number> {
   return 0;
 }
 
+/** Extract evenly-spaced frames from a video blob, scaled to the target tile size. */
 export async function extractFrames(
   videoBlob: Blob,
   targetWidth: number,

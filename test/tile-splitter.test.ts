@@ -31,7 +31,7 @@ describe('splitImageIntoTiles', () => {
     const img = makeImageData(120, 80);
     const tiles = splitImageIntoTiles(img, 2, 3);
 
-    // tileWidth = floor(120/3) = 40, tileHeight = floor(80/2) = 40
+    // tileSize = floor(120/3) = 40 (square tiles)
     expect(tiles[0]).toMatchObject({ row: 0, col: 0, x: 0, y: 0, width: 40, height: 40 });
     expect(tiles[1]).toMatchObject({ row: 0, col: 1, x: 40, y: 0, width: 40, height: 40 });
     expect(tiles[2]).toMatchObject({ row: 0, col: 2, x: 80, y: 0, width: 40, height: 40 });
